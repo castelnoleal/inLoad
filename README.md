@@ -14,7 +14,9 @@ YouTube video & music downloader plus a batch video/audio converter, built by Me
 | Frontend | Plain HTML/CSS/JS (`static/`) |
 | Deploy | Docker (`Dockerfile`), Render blueprint (`render.yaml`) |
 
-A backend server is required. Browsers can't download from YouTube directly, and conversion runs ffmpeg on the server. **Regular shared hosting (like DashNex) can't run it.** Use a Docker host such as Render, Railway, Fly.io or a VPS, then point a subdomain (for example `inload.meiocg.org`) to it.
+A backend server is required. Browsers can't download from YouTube directly, and conversion runs ffmpeg on the server. **Regular shared hosting (like DashNex) can't run it.** Use a Docker host such as Render, Railway, Fly.io or a VPS.
+
+**Live address (for now): https://inload.castelmei.com.** It can move to a meiocg.org subdomain later.
 
 ## Run locally
 
@@ -35,7 +37,17 @@ docker run -p 8080:8080 inload
 
 1. Push this repo to GitHub.
 2. On Render, go to **New → Blueprint** and pick the repo. It reads `render.yaml`.
-3. Add a custom domain in Render and create the CNAME record at your DNS provider.
+3. `render.yaml` already adds the custom domain `inload.castelmei.com`. Render shows the target hostname (like `inload.onrender.com`) under **Settings → Custom Domains**.
+4. At the DNS provider for castelmei.com, add this record:
+
+   | Type | Name | Value |
+   |---|---|---|
+   | CNAME | `inload` | `inload.onrender.com` (the hostname Render shows) |
+
+   If the domain uses Cloudflare, set the record to **DNS only** (grey cloud) until Render shows the certificate as issued. Cloudflare's proxy also cuts off uploads over 100 MB.
+5. Render issues the HTTPS certificate automatically once DNS resolves.
+
+To move to another domain later, change `domains` in `render.yaml` and the `canonical` / `og:url` tags in `static/index.html`.
 
 ## Settings (environment variables)
 
