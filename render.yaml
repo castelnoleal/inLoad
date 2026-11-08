@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: inload
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: MAX_UPLOAD_MB
+        value: "1024"
+      - key: MAX_PARALLEL_JOBS
+        value: "3"
+      - key: JOB_TTL_MIN
+        value: "60"
