@@ -5,7 +5,7 @@ services:
     plan: starter
     healthCheckPath: /api/health
     domains:
-      - inload.castelmei.com   # temporary home until a meiocg.org subdomain is ready
+      - inload.meiocg.org
     envVars:
       - key: MAX_UPLOAD_MB
         value: "1024"
