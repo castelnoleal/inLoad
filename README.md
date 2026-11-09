@@ -56,6 +56,10 @@ To move to another domain later, change `domains` in `render.yaml` and the `cano
 | `PORT` | `8080` | HTTP port |
 | `MAX_UPLOAD_MB` | `1024` | Max size of one converter upload request |
 | `MAX_PARALLEL_JOBS` | `3` | Downloads and conversions running at the same time |
+| `MAX_QUEUED_JOBS` | `12` | Maximum additional jobs waiting for a worker |
+| `MAX_FILES_PER_REQUEST` | `20` | Maximum files in one conversion request |
+| `MAX_DOWNLOAD_MB` | `2048` | Maximum downloaded media file size in MB |
+| `RATELIMIT_STORAGE_URI` | `memory://` | Rate-limit storage; use Redis before scaling beyond one instance |
 | `JOB_TTL_MIN` | `60` | Minutes before finished files are deleted |
 | `MAX_VIDEO_HEIGHT` | `2160` | Highest video resolution offered |
 | `ALLOWED_HOSTS` | YouTube domains | Sites that can be downloaded from (`*` = any site yt-dlp supports) |
@@ -70,7 +74,9 @@ Keep yt-dlp current, because YouTube changes often: rebuild the image regularly 
 
 ## Notes
 
-- Run gunicorn with **one worker** (`-w 1`, many threads). Jobs are kept in memory.
+- Run gunicorn with **one worker** (`-w 1`, many threads). Jobs and the default rate-limit counters are kept in memory; a restart loses active job state. Do not scale to multiple instances until shared job storage/queue and Redis rate-limit storage are implemented.
+- The API applies per-IP request limits and bounded active-job capacity. Tune limits to the selected host and monitor resource usage.
+- Review [`docs/PRODUCTION.md`](docs/PRODUCTION.md) before deployment. It documents known limitations and release acceptance tests.
 - Users should only download content they own or have permission to use.
 
 ## API
