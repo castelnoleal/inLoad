@@ -16,7 +16,7 @@ YouTube video & music downloader plus a batch video/audio converter, built by Me
 
 A backend server is required. Browsers can't download from YouTube directly, and conversion runs ffmpeg on the server. **Regular shared hosting (like DashNex) can't run it.** Use a Docker host such as Render, Railway, Fly.io or a VPS.
 
-**Planned production address: https://inload.meiocg.org.** This hostname is configured in the deployment blueprint; it is not live until the Render custom domain and DNS are configured.
+**Planned product address: https://inload.instapped.com.** This is the planned inLoad product subdomain. It is not live until the instApped integration is ready, the Render custom domain is verified, and DNS is configured.
 
 ## Run locally
 
@@ -36,7 +36,7 @@ docker run -p 8080:8080 inload
 
 1. Push this repo to GitHub.
 2. On Render, go to **New → Blueprint** and pick the repo. It reads `render.yaml`.
-3. The blueprint requests the custom domain `inload.meiocg.org`. Render shows the exact target hostname (for example, `inload.onrender.com`) under **Settings → Custom Domains**.
+3. The blueprint requests the custom domain `inload.instapped.com`. Render shows the exact target hostname (for example, `inload.onrender.com`) under **Settings → Custom Domains**.
 4. In the DNS provider for `meiocg.org`, add the CNAME record:
 
    | Type | Name | Value |
@@ -44,7 +44,7 @@ docker run -p 8080:8080 inload
    | CNAME | `inload` | The exact target hostname shown by Render |
 
    If using Cloudflare, keep the record **DNS only** (grey cloud) during initial domain verification and large-upload testing. Cloudflare's standard proxied upload limit can prevent uploads above 100 MB.
-5. Wait for DNS to resolve and Render to issue the HTTPS certificate. Then verify `https://inload.meiocg.org/api/health`.
+5. Wait for DNS to resolve and Render to issue the HTTPS certificate. Then verify `https://inload.instapped.com/api/health`.
 
 Do not change DNS or deploy a live service as part of reviewing this branch. Complete the release checklist in `docs/PRODUCTION.md` first.
 
