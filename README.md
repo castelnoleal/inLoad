@@ -1,10 +1,9 @@
 # inLoad
 
-YouTube video & music downloader plus a batch video/audio converter, built by Meta Insider OCG.
+A free, independently operated video and audio downloader and batch media converter.
 
 - **Download**: paste a YouTube or YouTube Music link (or a playlist) and save it as video (MP4 / WEBM / MKV, 360p–4K) or music (MP3 / M4A / OPUS / WAV / FLAC, up to 320 kbps). Playlists let you tick the items you want and queue them all at once.
 - **Convert**: drop many files at once and convert them all to MP3, M4A, AAC, WAV, FLAC, OGG, OPUS, MP4, WEBM, MKV, MOV, AVI or GIF, with optional resizing and bitrate. Each file shows its own progress, and you can save all results as one ZIP.
-- **Ads**: house ads for MEIOCG products and instApped appear in a rotating top banner, inline cards and a footer grid. Edit the list in `static/ads.js`.
 
 ## Stack
 
@@ -16,7 +15,7 @@ YouTube video & music downloader plus a batch video/audio converter, built by Me
 
 A backend server is required. Browsers can't download from YouTube directly, and conversion runs ffmpeg on the server. **Regular shared hosting (like DashNex) can't run it.** Use a Docker host such as Render, Railway, Fly.io or a VPS.
 
-**Planned product address: https://inload.instapped.com.** This is the planned inLoad product subdomain. It is not live until the instApped integration is ready, the Render custom domain is verified, and DNS is configured.
+**Custom domain: not selected yet.** Until an independent domain is acquired, use the host's assigned `onrender.com` address for private testing. The application has no dependency on instApped accounts, billing, licenses, APIs or hosting. Its eventual custom domain can be attached independently.
 
 ## Run locally
 
@@ -36,15 +35,15 @@ docker run -p 8080:8080 inload
 
 1. Push this repo to GitHub.
 2. On Render, go to **New → Blueprint** and pick the repo. It reads `render.yaml`.
-3. The blueprint requests the custom domain `inload.instapped.com`. Render shows the exact target hostname (for example, `inload.onrender.com`) under **Settings → Custom Domains**.
-4. In the DNS provider for `meiocg.org`, add the CNAME record:
+3. Do not add a custom domain in this stage. Render will assign a service hostname for testing. Attach the separately acquired inLoad domain only after the service passes acceptance tests.
+4. When the independent inLoad domain is acquired, add its CNAME record at that domain's DNS provider:
 
    | Type | Name | Value |
    |---|---|---|
    | CNAME | `inload` | The exact target hostname shown by Render |
 
    If using Cloudflare, keep the record **DNS only** (grey cloud) during initial domain verification and large-upload testing. Cloudflare's standard proxied upload limit can prevent uploads above 100 MB.
-5. Wait for DNS to resolve and Render to issue the HTTPS certificate. Then verify `https://inload.instapped.com/api/health`.
+5. Wait for DNS to resolve and Render to issue the HTTPS certificate. Then verify `the Render-assigned service hostname plus `/api/health``.
 
 Do not change DNS or deploy a live service as part of reviewing this branch. Complete the release checklist in `docs/PRODUCTION.md` first.
 
