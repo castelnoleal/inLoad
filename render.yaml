@@ -5,7 +5,7 @@ services:
     plan: starter
     healthCheckPath: /api/health
     domains:
-      - inload.meiocg.org
+      - inload.instapped.com
     envVars:
       - key: MAX_UPLOAD_MB
         value: "1024"
