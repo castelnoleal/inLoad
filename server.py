@@ -529,6 +529,7 @@ def _do_convert(job: dict, src: str, original: str, target: str, height: str, bi
 # Routes — jobs & files
 # --------------------------------------------------------------------------- #
 @app.get("/api/jobs")
+@limiter.limit("60 per minute")
 def jobs_status():
     ids = [i for i in request.args.get("ids", "").split(",") if i]
     with JOBS_LOCK:
@@ -537,6 +538,7 @@ def jobs_status():
 
 
 @app.get("/api/file/<jid>")
+@limiter.limit("12 per minute")
 def get_file(jid):
     with JOBS_LOCK:
         job = JOBS.get(jid)
@@ -546,6 +548,7 @@ def get_file(jid):
 
 
 @app.get("/api/zip")
+@limiter.limit("6 per minute")
 def get_zip():
     ids = [i for i in request.args.get("ids", "").split(",") if i][:200]
     with JOBS_LOCK:
