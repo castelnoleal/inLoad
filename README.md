@@ -40,10 +40,10 @@ docker run -p 8080:8080 inload
 
    | Type | Name | Value |
    |---|---|---|
-   | CNAME | `inload` | The exact target hostname shown by Render |
+   | CNAME | The host label chosen on your independent domain | The exact target hostname shown by Render |
 
    If using Cloudflare, keep the record **DNS only** (grey cloud) during initial domain verification and large-upload testing. Cloudflare's standard proxied upload limit can prevent uploads above 100 MB.
-5. Wait for DNS to resolve and Render to issue the HTTPS certificate. Then verify `the Render-assigned service hostname plus `/api/health``.
+5. For testing, verify the Render-assigned service hostname plus `/api/health`.
 
 Do not change DNS or deploy a live service as part of reviewing this branch. Complete the release checklist in `docs/PRODUCTION.md` first.
 
