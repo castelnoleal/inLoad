@@ -4,8 +4,6 @@ services:
     runtime: docker
     plan: starter
     healthCheckPath: /api/health
-    domains:
-      - inload.instapped.com
     envVars:
       - key: MAX_UPLOAD_MB
         value: "1024"
