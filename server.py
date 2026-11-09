@@ -24,6 +24,8 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from flask import Flask, abort, jsonify, request, send_file, send_from_directory
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 try:
     import yt_dlp  # type: ignore
@@ -40,7 +42,11 @@ WORK_DIR.mkdir(parents=True, exist_ok=True)
 
 MAX_UPLOAD_MB = int(os.environ.get("MAX_UPLOAD_MB", "1024"))
 JOB_TTL_MIN = int(os.environ.get("JOB_TTL_MIN", "60"))
-MAX_PARALLEL = int(os.environ.get("MAX_PARALLEL_JOBS", "3"))
+MAX_PARALLEL = max(1, int(os.environ.get("MAX_PARALLEL_JOBS", "3")))
+MAX_QUEUED_JOBS = max(0, int(os.environ.get("MAX_QUEUED_JOBS", "12")))
+MAX_ACTIVE_JOBS = MAX_PARALLEL + MAX_QUEUED_JOBS
+MAX_FILES_PER_REQUEST = max(1, int(os.environ.get("MAX_FILES_PER_REQUEST", "20")))
+MAX_DOWNLOAD_MB = max(1, int(os.environ.get("MAX_DOWNLOAD_MB", "2048")))
 MAX_VIDEO_HEIGHT = int(os.environ.get("MAX_VIDEO_HEIGHT", "2160"))
 COOKIES_FILE = os.environ.get("YTDLP_COOKIES", "").strip() or None
 ALLOWED_HOSTS = [
@@ -53,6 +59,9 @@ ALLOWED_HOSTS = [
 
 app = Flask(__name__, static_folder=None)
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_MB * 1024 * 1024
+# Memory storage is appropriate only for this single-instance deployment.
+# Configure RATELIMIT_STORAGE_URI with Redis before scaling horizontally.
+limiter = Limiter(get_remote_address, app=app, default_limits=[], storage_uri=os.environ.get("RATELIMIT_STORAGE_URI", "memory://"), strategy="fixed-window")
 
 # --------------------------------------------------------------------------- #
 # Format tables
@@ -73,6 +82,10 @@ SLOTS = threading.Semaphore(MAX_PARALLEL)
 
 
 def new_job(kind: str, label: str) -> dict:
+    with JOBS_LOCK:
+        active = sum(j["status"] in ("queued", "running") for j in JOBS.values())
+        if active >= MAX_ACTIVE_JOBS:
+            abort(429, description="The server queue is full. Please try again shortly.")
     jid = uuid.uuid4().hex[:16]
     job = {
         "id": jid,
@@ -177,6 +190,7 @@ def ydl_base_opts() -> dict:
         "socket_timeout": 30,
         "retries": 3,
     }
+    opts["max_filesize"] = MAX_DOWNLOAD_MB * 1024 * 1024
     if COOKIES_FILE and Path(COOKIES_FILE).exists():
         opts["cookiefile"] = COOKIES_FILE
     return opts
@@ -254,6 +268,7 @@ def json_error(err):
 # Routes — YouTube info
 # --------------------------------------------------------------------------- #
 @app.post("/api/info")
+@limiter.limit("12 per minute")
 def info():
     need_ytdlp()
     url = (request.get_json(silent=True) or {}).get("url", "").strip()
@@ -308,6 +323,7 @@ def info():
 # Routes — YouTube download
 # --------------------------------------------------------------------------- #
 @app.post("/api/download")
+@limiter.limit("6 per minute")
 def download():
     need_ytdlp()
     body = request.get_json(silent=True) or {}
@@ -319,6 +335,10 @@ def download():
 
     if not host_allowed(url):
         abort(400, description="Only YouTube and YouTube Music links are supported.")
+    if mode == "video" and quality not in HEIGHTS - {"keep"}:
+        abort(400, description="Unsupported video resolution.")
+    if mode == "audio" and quality not in BITRATES:
+        abort(400, description="Unsupported audio bitrate.")
     if mode == "video" and fmt not in DL_VIDEO_CONTAINERS:
         abort(400, description="Unsupported video format.")
     if mode == "audio" and fmt not in DL_AUDIO_FORMATS:
@@ -405,6 +425,7 @@ def _do_download(job: dict, url: str, mode: str, fmt: str, quality: str) -> None
 # Routes — converter
 # --------------------------------------------------------------------------- #
 @app.post("/api/convert")
+@limiter.limit("4 per minute")
 def convert():
     files = request.files.getlist("files")
     target = request.form.get("target", "").lower()
@@ -413,6 +434,12 @@ def convert():
 
     if not files:
         abort(400, description="Add at least one file.")
+    if len(files) > MAX_FILES_PER_REQUEST:
+        abort(413, description=f"Maximum {MAX_FILES_PER_REQUEST} files per conversion request.")
+    with JOBS_LOCK:
+        active = sum(j["status"] in ("queued", "running") for j in JOBS.values())
+    if active + len(files) > MAX_ACTIVE_JOBS:
+        abort(429, description="The server queue cannot accept this batch right now.")
     if target not in VIDEO_TARGETS | AUDIO_TARGETS:
         abort(400, description="Pick an output format.")
     if height not in HEIGHTS:
@@ -423,9 +450,17 @@ def convert():
     jobs = []
     for f in files:
         original = f.filename or "file"
+        allowed_extensions = {".mp4", ".m4v", ".mkv", ".webm", ".mov", ".avi", ".wmv", ".flv", ".3gp", ".ts", ".mp3", ".m4a", ".aac", ".wav", ".flac", ".ogg", ".opus", ".wma", ".amr", ".aiff", ".aif"}
+        if Path(original).suffix.lower() not in allowed_extensions:
+            abort(400, description=f"Unsupported media file extension: {Path(original).suffix or '(none)'}.")
         job = new_job("convert", original)
         src = Path(job["dir"]) / ("src_" + safe_name(original))
         f.save(src)
+        if src.stat().st_size > MAX_UPLOAD_MB * 1024 * 1024:
+            shutil.rmtree(job["dir"], ignore_errors=True)
+            with JOBS_LOCK:
+                JOBS.pop(job["id"], None)
+            abort(413, description=f"{original} exceeds the {MAX_UPLOAD_MB} MB upload limit.")
         run_job(job, _do_convert, str(src), original, target, height, bitrate)
         jobs.append(public(job))
     return jsonify(jobs=jobs), 202
@@ -555,9 +590,10 @@ def get_zip():
         ready = [JOBS[i] for i in ids if i in JOBS and JOBS[i]["status"] == "done"]
     if not ready:
         abort(404, description="No finished files to zip.")
-    buf = io.BytesIO()
     used: set[str] = set()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED) as z:
+    fd, zip_path = tempfile.mkstemp(prefix="inload-", suffix=".zip", dir=str(WORK_DIR))
+    os.close(fd)
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED, compresslevel=1) as z:
         for j in ready:
             name = j["filename"]
             base, ext = os.path.splitext(name)
@@ -567,9 +603,10 @@ def get_zip():
                 name = f"{base} ({n}){ext}"
             used.add(name)
             z.write(j["path"], arcname=name)
-    buf.seek(0)
-    return send_file(buf, mimetype="application/zip", as_attachment=True,
-                     download_name=f"inLoad-{time.strftime('%Y%m%d-%H%M%S')}.zip")
+    response = send_file(zip_path, mimetype="application/zip", as_attachment=True,
+                         download_name=f"inLoad-{time.strftime('%Y%m%d-%H%M%S')}.zip")
+    response.call_on_close(lambda: os.path.exists(zip_path) and os.remove(zip_path))
+    return response
 
 
 if __name__ == "__main__":
