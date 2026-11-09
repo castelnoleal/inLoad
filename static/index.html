@@ -6,9 +6,9 @@
   <title>inLoad — YouTube Downloader &amp; Media Converter</title>
   <meta name="description" content="Download YouTube videos and music as MP4 or MP3, and convert many video and audio files at once. Free, fast and simple.">
   <meta name="theme-color" content="#0e1116">
-  <link rel="canonical" href="https://inload.castelmei.com/">
+  <link rel="canonical" href="https://inload.meiocg.org/">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://inload.castelmei.com/">
+  <meta property="og:url" content="https://inload.meiocg.org/">
   <meta property="og:title" content="inLoad — YouTube Downloader &amp; Media Converter">
   <meta property="og:description" content="Download YouTube videos and music, and convert many video and audio files at once.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2322d3a6'/%3E%3Cpath d='M32 14v26m0 0-10-10m10 10 10-10M18 48h28' stroke='%230e1116' stroke-width='6' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
@@ -18,14 +18,10 @@
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <!-- Top ad banner (filled by ads.js) -->
   <aside class="ad-banner" id="adBanner" aria-label="Sponsored"></aside>
-
   <header class="top">
     <a class="brand" href="/" aria-label="inLoad home">
-      <span class="logo" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
-      </span>
+      <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg></span>
       <span class="wordmark">in<b>Load</b></span>
     </a>
     <nav class="tabs" role="tablist">
@@ -33,165 +29,81 @@
       <button class="tab" role="tab" aria-selected="false" data-tab="convert">Convert</button>
     </nav>
   </header>
-
   <main>
-    <!-- ================= DOWNLOAD ================= -->
     <section class="panel active" id="panel-download" role="tabpanel">
       <h1>Download YouTube videos &amp; music</h1>
       <p class="sub">Paste a link from YouTube or YouTube Music. Playlists work too.</p>
-
       <form class="url-box" id="urlForm" autocomplete="off">
         <input id="urlInput" type="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=…" required>
         <button type="button" class="btn ghost" id="pasteBtn" title="Paste from clipboard">Paste</button>
         <button type="submit" class="btn primary" id="fetchBtn">Search</button>
       </form>
-
       <div class="card preview hidden" id="preview">
         <img id="pvThumb" alt="" loading="lazy">
         <div class="pv-body">
-          <h2 id="pvTitle"></h2>
-          <p class="muted" id="pvMeta"></p>
-
+          <h2 id="pvTitle"></h2><p class="muted" id="pvMeta"></p>
           <div class="seg" id="modeSeg" role="radiogroup" aria-label="Type">
             <button type="button" class="seg-btn active" data-mode="video">🎬 Video</button>
             <button type="button" class="seg-btn" data-mode="audio">🎵 Music</button>
           </div>
-
           <div class="row">
-            <label>Format
-              <select id="dlFormat"></select>
-            </label>
-            <label><span id="dlQualityLabel">Quality</span>
-              <select id="dlQuality"></select>
-            </label>
+            <label>Format<select id="dlFormat"></select></label>
+            <label><span id="dlQualityLabel">Quality</span><select id="dlQuality"></select></label>
           </div>
-
           <button class="btn primary wide" id="dlBtn">Download</button>
         </div>
       </div>
-
       <div class="card playlist hidden" id="playlist">
-        <div class="pl-head">
-          <div>
-            <h2 id="plTitle"></h2>
-            <p class="muted" id="plMeta"></p>
-          </div>
-          <label class="check"><input type="checkbox" id="plAll" checked> All</label>
-        </div>
+        <div class="pl-head"><div><h2 id="plTitle"></h2><p class="muted" id="plMeta"></p></div><label class="check"><input type="checkbox" id="plAll" checked> All</label></div>
         <ul class="pl-list" id="plList"></ul>
         <div class="row">
-          <label>Type
-            <select id="plMode">
-              <option value="audio">🎵 Music</option>
-              <option value="video">🎬 Video</option>
-            </select>
-          </label>
-          <label>Format <select id="plFormat"></select></label>
-          <label>Quality <select id="plQuality"></select></label>
+          <label>Type<select id="plMode"><option value="audio">🎵 Music</option><option value="video">🎬 Video</option></select></label>
+          <label>Format<select id="plFormat"></select></label>
+          <label>Quality<select id="plQuality"></select></label>
         </div>
         <button class="btn primary wide" id="plBtn">Download selected</button>
       </div>
-
       <div class="ad-inline" data-ad-slot="inline"></div>
-
       <div class="queue-wrap hidden" id="dlQueueWrap">
-        <div class="queue-head">
-          <h3>Downloads</h3>
-          <button class="btn small ghost" id="dlZip" disabled>Save all (.zip)</button>
-        </div>
+        <div class="queue-head"><h3>Downloads</h3><button class="btn small ghost" id="dlZip" disabled>Save all (.zip)</button></div>
         <ul class="queue" id="dlQueue"></ul>
       </div>
     </section>
-
-    <!-- ================= CONVERT ================= -->
     <section class="panel" id="panel-convert" role="tabpanel">
       <h1>Convert video &amp; audio files</h1>
       <p class="sub">Drop many files at once and convert them all to one format.</p>
-
       <label class="drop" id="drop">
         <input type="file" id="fileInput" multiple accept="video/*,audio/*,.mkv,.flac,.opus,.m4a,.webm,.avi,.mov,.wmv,.3gp,.ts">
-        <span class="drop-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><path d="M12 16V5m0 0-4 4m4-4 4 4M5 19h14"/></svg>
-        </span>
-        <strong>Drop files here or tap to choose</strong>
-        <span class="muted small" id="dropHint">Video or audio, many at once</span>
+        <span class="drop-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V5m0 0-4 4m4-4 4 4M5 19h14"/></svg></span>
+        <strong>Drop files here or tap to choose</strong><span class="muted small" id="dropHint">Video or audio, many at once</span>
       </label>
-
       <ul class="files hidden" id="fileList"></ul>
-
       <div class="card options">
         <label class="full">Convert to
           <select id="cvTarget">
-            <optgroup label="Audio">
-              <option value="mp3" selected>MP3</option>
-              <option value="m4a">M4A (AAC)</option>
-              <option value="aac">AAC</option>
-              <option value="wav">WAV</option>
-              <option value="flac">FLAC (lossless)</option>
-              <option value="ogg">OGG (Vorbis)</option>
-              <option value="opus">OPUS</option>
-            </optgroup>
-            <optgroup label="Video">
-              <option value="mp4">MP4 (H.264)</option>
-              <option value="webm">WEBM (VP9)</option>
-              <option value="mkv">MKV</option>
-              <option value="mov">MOV</option>
-              <option value="avi">AVI</option>
-              <option value="gif">GIF (animated)</option>
-            </optgroup>
+            <optgroup label="Audio"><option value="mp3" selected>MP3</option><option value="m4a">M4A (AAC)</option><option value="aac">AAC</option><option value="wav">WAV</option><option value="flac">FLAC (lossless)</option><option value="ogg">OGG (Vorbis)</option><option value="opus">OPUS</option></optgroup>
+            <optgroup label="Video"><option value="mp4">MP4 (H.264)</option><option value="webm">WEBM (VP9)</option><option value="mkv">MKV</option><option value="mov">MOV</option><option value="avi">AVI</option><option value="gif">GIF (animated)</option></optgroup>
           </select>
         </label>
         <div class="row">
-          <label id="cvHeightWrap">Resolution
-            <select id="cvHeight">
-              <option value="keep">Keep original</option>
-              <option value="2160">4K (2160p)</option>
-              <option value="1440">1440p</option>
-              <option value="1080">1080p</option>
-              <option value="720">720p</option>
-              <option value="480">480p</option>
-              <option value="360">360p</option>
-            </select>
-          </label>
-          <label id="cvBitrateWrap">Audio quality
-            <select id="cvBitrate">
-              <option value="320">320 kbps (best)</option>
-              <option value="256">256 kbps</option>
-              <option value="192" selected>192 kbps</option>
-              <option value="128">128 kbps</option>
-              <option value="96">96 kbps</option>
-            </select>
-          </label>
+          <label id="cvHeightWrap">Resolution<select id="cvHeight"><option value="keep">Keep original</option><option value="2160">4K (2160p)</option><option value="1440">1440p</option><option value="1080">1080p</option><option value="720">720p</option><option value="480">480p</option><option value="360">360p</option></select></label>
+          <label id="cvBitrateWrap">Audio quality<select id="cvBitrate"><option value="320">320 kbps (best)</option><option value="256">256 kbps</option><option value="192" selected>192 kbps</option><option value="128">128 kbps</option><option value="96">96 kbps</option></select></label>
         </div>
         <button class="btn primary wide" id="cvBtn" disabled>Convert</button>
       </div>
-
       <div class="ad-inline" data-ad-slot="inline"></div>
-
       <div class="queue-wrap hidden" id="cvQueueWrap">
-        <div class="queue-head">
-          <h3>Converted</h3>
-          <button class="btn small ghost" id="cvZip" disabled>Save all (.zip)</button>
-        </div>
+        <div class="queue-head"><h3>Converted</h3><button class="btn small ghost" id="cvZip" disabled>Save all (.zip)</button></div>
         <ul class="queue" id="cvQueue"></ul>
       </div>
     </section>
-
-    <!-- ================= MORE FROM ================= -->
-    <section class="more">
-      <h3>More from MEIOCG &amp; instApped</h3>
-      <div class="ad-grid" id="adGrid"></div>
-    </section>
+    <section class="more"><h3>More from MEIOCG &amp; instApped</h3><div class="ad-grid" id="adGrid"></div></section>
   </main>
-
   <footer>
     <p>Only download content you own or have permission to use. Respect creators and YouTube's Terms of Service.</p>
     <p class="muted small">Files are deleted from the server automatically after a while. © <span id="yr"></span> inLoad · A Meta Insider OCG project</p>
   </footer>
-
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
-  <script src="/static/ads.js"></script>
-  <script src="/static/app.js"></script>
+  <script src="/static/ads.js"></script><script src="/static/app.js"></script>
 </body>
 </html>
