@@ -1,5 +1,7 @@
 # inLoad production rollout checklist
 
+inLoad is a free, independently branded product. It does not use instApped subscriptions, license keys, customer accounts, billing APIs, or hosting. Its eventual custom domain is managed independently; until then use the host-assigned service URL for testing. Do not configure a custom domain or DNS as part of this review.
+
 This document describes the staged release process. A successful GitHub build is not proof that Render, DNS, SSL, YouTube extraction, or large-file transfers work in production.
 
 ## Before deployment
