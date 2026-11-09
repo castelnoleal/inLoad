@@ -26,6 +26,7 @@ from urllib.parse import urlparse
 from flask import Flask, abort, jsonify, request, send_file, send_from_directory
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 try:
     import yt_dlp  # type: ignore
@@ -61,6 +62,8 @@ app = Flask(__name__, static_folder=None)
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_MB * 1024 * 1024
 # Memory storage is appropriate only for this single-instance deployment.
 # Configure RATELIMIT_STORAGE_URI with Redis before scaling horizontally.
+ # Render terminates TLS in one trusted reverse-proxy hop and forwards the client address.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=0, x_port=0, x_prefix=0)
 limiter = Limiter(get_remote_address, app=app, default_limits=[], storage_uri=os.environ.get("RATELIMIT_STORAGE_URI", "memory://"), strategy="fixed-window")
 
 # --------------------------------------------------------------------------- #
@@ -82,10 +85,6 @@ SLOTS = threading.Semaphore(MAX_PARALLEL)
 
 
 def new_job(kind: str, label: str) -> dict:
-    with JOBS_LOCK:
-        active = sum(j["status"] in ("queued", "running") for j in JOBS.values())
-        if active >= MAX_ACTIVE_JOBS:
-            abort(429, description="The server queue is full. Please try again shortly.")
     jid = uuid.uuid4().hex[:16]
     job = {
         "id": jid,
@@ -101,7 +100,12 @@ def new_job(kind: str, label: str) -> dict:
         "created": time.time(),
     }
     Path(job["dir"]).mkdir(parents=True, exist_ok=True)
+    # Check and insert under the same lock so concurrent requests cannot exceed the cap.
     with JOBS_LOCK:
+        active = sum(j["status"] in ("queued", "running") for j in JOBS.values())
+        if active >= MAX_ACTIVE_JOBS:
+            shutil.rmtree(job["dir"], ignore_errors=True)
+            abort(429, description="The server queue is full. Please try again shortly.")
         JOBS[jid] = job
     return job
 
@@ -537,6 +541,17 @@ def _do_convert(job: dict, src: str, original: str, target: str, height: str, bi
     t = threading.Thread(target=read_err, daemon=True)
     t.start()
 
+    timed_out = threading.Event()
+
+    def enforce_timeout():
+        try:
+            proc.wait(timeout=7200)
+        except subprocess.TimeoutExpired:
+            timed_out.set()
+            proc.kill()
+
+    watchdog = threading.Thread(target=enforce_timeout, daemon=True)
+    watchdog.start()
     for line in proc.stdout:  # type: ignore[union-attr]
         if line.startswith("out_time_us=") or line.startswith("out_time_ms="):
             try:
@@ -546,7 +561,10 @@ def _do_convert(job: dict, src: str, original: str, target: str, height: str, bi
             if duration > 0:
                 update(job, progress=round(min(us / 1_000_000 / duration * 100, 99), 1))
     proc.wait()
+    watchdog.join(timeout=2)
     t.join(timeout=2)
+    if timed_out.is_set():
+        raise RuntimeError("Conversion timed out after two hours.")
 
     if proc.returncode != 0 or not Path(out).exists():
         last = next((ln.strip() for ln in reversed(err_tail) if ln.strip()), "ffmpeg failed")
