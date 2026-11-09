@@ -13,5 +13,6 @@ COPY . .
 
 ENV PORT=8080 PYTHONUNBUFFERED=1
 EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/health', timeout=3)" || exit 1
 # One worker on purpose: jobs are kept in memory. Threads handle concurrency.
 CMD gunicorn -w 1 --threads 16 --timeout 0 -b 0.0.0.0:${PORT} server:app
