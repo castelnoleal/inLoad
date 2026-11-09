@@ -11,5 +11,15 @@ services:
         value: "1024"
       - key: MAX_PARALLEL_JOBS
         value: "3"
+      - key: MAX_QUEUED_JOBS
+        value: "12"
+      - key: MAX_FILES_PER_REQUEST
+        value: "20"
+      - key: MAX_DOWNLOAD_MB
+        value: "2048"
       - key: JOB_TTL_MIN
         value: "60"
+      - key: MAX_VIDEO_HEIGHT
+        value: "2160"
+      - key: RATELIMIT_STORAGE_URI
+        value: "memory://"
