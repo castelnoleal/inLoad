@@ -62,7 +62,7 @@ app = Flask(__name__, static_folder=None)
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_MB * 1024 * 1024
 # Memory storage is appropriate only for this single-instance deployment.
 # Configure RATELIMIT_STORAGE_URI with Redis before scaling horizontally.
- # Render terminates TLS in one trusted reverse-proxy hop and forwards the client address.
+# Render terminates TLS in one trusted reverse-proxy hop and forwards the client address.
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=0, x_port=0, x_prefix=0)
 limiter = Limiter(get_remote_address, app=app, default_limits=[], storage_uri=os.environ.get("RATELIMIT_STORAGE_URI", "memory://"), strategy="fixed-window")
 
