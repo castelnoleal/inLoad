@@ -20,6 +20,6 @@ jobs:
       - name: Compile Python sources
         run: python -m compileall -q server.py tests
       - name: Run tests
-        run: pytest -q
+        run: PYTHONPATH=. pytest -q
       - name: Build Docker image
         run: docker build -t inload:ci .
