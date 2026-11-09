@@ -314,10 +314,11 @@
   // Upload in batches that fit the server's limit, so 20 big files don't fail together
   function batches(list) {
     const limit = maxMB * 1024 * 1024 * 0.95;
+    const maxFiles = 20;
     const out = []; let cur = []; let size = 0;
     for (const f of list) {
       if (f.size > limit) { toast(`${f.name} is larger than ${maxMB} MB`, true); continue; }
-      if (cur.length && size + f.size > limit) { out.push(cur); cur = []; size = 0; }
+      if (cur.length && (size + f.size > limit || cur.length >= maxFiles)) { out.push(cur); cur = []; size = 0; }
       cur.push(f); size += f.size;
     }
     if (cur.length) out.push(cur);
